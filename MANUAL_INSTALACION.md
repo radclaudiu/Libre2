@@ -93,19 +93,10 @@ UPLOAD_DIR="./uploads"
 Instalar y ejecutar:
 
 ```bash
-# Instalar dependencias
 npm install
-
-# Generar cliente Prisma
 npx prisma generate
-
-# Ejecutar migraciones
 npx prisma migrate dev --name init
-
-# Cargar datos de prueba
 npx prisma db seed
-
-# Iniciar servidor
 npm run dev
 ```
 
@@ -115,8 +106,6 @@ El servidor arranca en `http://localhost:3001`.
 
 ```bash
 cd web
-
-# Copiar configuración
 cp .env.example .env.local
 ```
 
@@ -126,8 +115,6 @@ Editar `web/.env.local`:
 NEXT_PUBLIC_API_URL=http://localhost:3001
 NEXT_PUBLIC_WS_URL=http://localhost:3001
 ```
-
-Instalar y ejecutar:
 
 ```bash
 npm install
@@ -140,13 +127,13 @@ La web arranca en `http://localhost:3000`.
 
 ```bash
 cd tpv
-
 npm install
-
-# Modo desarrollo
 npm run dev
+```
 
-# Compilar instalador Windows (.exe)
+Para compilar el instalador Windows:
+
+```bash
 npm run build:win
 ```
 
@@ -154,92 +141,7 @@ El instalador se genera en `tpv/build/`.
 
 ---
 
-## Instalación en producción
-
-### Servidor API
-
-```bash
-cd server
-npm install
-npx prisma generate
-npm run build
-NODE_ENV=production node dist/app.js
-```
-
-Se recomienda usar **PM2** para gestión de procesos:
-
-```bash
-npm install -g pm2
-pm2 start dist/app.js --name qr-restaurant-api
-pm2 save
-```
-
-### Web Next.js
-
-```bash
-cd web
-npm install
-npm run build
-npm start
-```
-
-### Variables de entorno en producción
-
-| Variable | Valor producción |
-|----------|-----------------|
-| `DATABASE_URL` | URL de tu PostgreSQL en producción |
-| `JWT_SECRET` | Cadena aleatoria segura de 64+ caracteres |
-| `CORS_ORIGIN` | `https://tudominio.com` |
-| `NEXT_PUBLIC_API_URL` | `https://api.tudominio.com` |
-| `NEXT_PUBLIC_WS_URL` | `https://api.tudominio.com` |
-
-### HTTPS
-
-En producción es **obligatorio** usar HTTPS. Se recomienda:
-- **Nginx** como proxy inverso con certificados Let's Encrypt
-- O un servicio como **Cloudflare** para SSL
-
-Ejemplo de configuración Nginx:
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name api.tudominio.com;
-
-    ssl_certificate /etc/letsencrypt/live/api.tudominio.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.tudominio.com/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name tudominio.com;
-
-    ssl_certificate /etc/letsencrypt/live/tudominio.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/tudominio.com/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
----
-
 ## Datos de prueba (seed)
-
-Tras ejecutar el seed, el sistema incluye:
 
 | Dato | Valor |
 |------|-------|
@@ -253,32 +155,34 @@ Tras ejecutar el seed, el sistema incluye:
 
 ---
 
+## Producción
+
+### Servidor
+
+```bash
+cd server && npm install && npx prisma generate && npm run build
+NODE_ENV=production node dist/app.js
+```
+
+### Web
+
+```bash
+cd web && npm install && npm run build && npm start
+```
+
+### HTTPS (obligatorio en producción)
+
+Usar Nginx como proxy inverso con certificados Let's Encrypt. Importante: configurar WebSocket passthrough.
+
+---
+
 ## Resolución de problemas
 
-### El servidor no arranca
-
-1. Verificar que PostgreSQL está corriendo: `pg_isready`
-2. Verificar la variable `DATABASE_URL` en `.env`
-3. Ejecutar `npx prisma migrate deploy`
-
-### Error "JWT_SECRET must be at least 32 characters"
-
-Asegurarse de que `JWT_SECRET` en `.env` tiene al menos 32 caracteres.
-
-### La web no se conecta al servidor
-
-1. Verificar que el servidor está corriendo en el puerto correcto
-2. Verificar `NEXT_PUBLIC_API_URL` en `.env.local`
-3. Verificar que `CORS_ORIGIN` en el servidor incluye la URL de la web
-
-### El TPV no recibe pedidos en tiempo real
-
-1. Verificar la URL del servidor en la pantalla de login del TPV
-2. Verificar que el WebSocket está habilitado (mismo puerto que la API)
-3. Comprobar que no hay firewall bloqueando la conexión
-
-### La impresión no funciona
-
-1. En Configuración del TPV, verificar que la impresora está seleccionada
-2. Probar con el botón "Probar impresión"
-3. Para impresoras térmicas, seleccionar el ancho de papel correcto (80mm o 58mm)
+| Problema | Solución |
+|----------|----------|
+| Servidor no arranca | Verificar PostgreSQL y DATABASE_URL |
+| JWT_SECRET error | Mínimo 32 caracteres en .env |
+| Web no conecta al servidor | Verificar NEXT_PUBLIC_API_URL y CORS_ORIGIN |
+| TPV no recibe pedidos | Verificar URL del servidor y que WebSocket esté habilitado |
+| Impresión no funciona | Verificar impresora en Configuración del TPV |
+| Cliente ve "Mesa no disponible" | El camarero debe abrir la mesa desde el TPV primero |

@@ -61,20 +61,40 @@ export const authApi = {
 export const menuApi = {
   getMenu: (companySlug: string) =>
     apiFetch<{ company: Record<string, string>; categories: Record<string, unknown>[] }>(`/api/menu/${encodeURIComponent(companySlug)}`),
-  getTableInfo: (tableId: string) =>
-    apiFetch<Record<string, unknown>>(`/api/tables/${encodeURIComponent(tableId)}/info`),
 };
 
-// Orders (public)
+// Sessions (public check, auth for others)
+export const sessionsApi = {
+  check: (tableId: string) =>
+    apiFetch<{ active: boolean; sessionToken?: string; sessionId?: string; table: { id: string; name: string }; company: { id: string; name: string; slug: string } }>(
+      `/api/sessions/check/${encodeURIComponent(tableId)}`
+    ),
+  open: (token: string, tableId: string) =>
+    apiFetch<{ session: Record<string, unknown>; bill: Record<string, unknown> }>('/api/sessions/open', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ tableId }),
+    }),
+  close: (token: string, sessionId: string) =>
+    apiFetch<{ session: Record<string, unknown>; bill: Record<string, unknown>; total: number }>(
+      `/api/sessions/close/${encodeURIComponent(sessionId)}`,
+      { method: 'PUT', token }
+    ),
+  getActive: (token: string) =>
+    apiFetch<Record<string, unknown>[]>('/api/sessions/active', { token }),
+};
+
+// Orders (public create with sessionToken, auth for others)
 export const ordersApi = {
-  create: (data: { tableId: string; companyId: string; items: Record<string, unknown>[]; notes?: string }) =>
+  create: (data: { tableId: string; sessionToken: string; items: Record<string, unknown>[]; notes?: string }) =>
     apiFetch('/api/orders', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  getAll: (token: string, params?: { tableId?: string; status?: string }) => {
+  getAll: (token: string, params?: { tableId?: string; sessionId?: string; status?: string }) => {
     const query = new URLSearchParams();
     if (params?.tableId) query.set('tableId', params.tableId);
+    if (params?.sessionId) query.set('sessionId', params.sessionId);
     if (params?.status) query.set('status', params.status);
     return apiFetch<Record<string, unknown>[]>(`/api/orders?${query.toString()}`, { token });
   },
@@ -142,16 +162,13 @@ export const tablesApi = {
 
 // Bills (admin)
 export const billsApi = {
-  getAll: (token: string, params?: { tableId?: string; status?: string }) => {
+  getAll: (token: string, params?: { tableId?: string; sessionId?: string; status?: string }) => {
     const query = new URLSearchParams();
     if (params?.tableId) query.set('tableId', params.tableId);
+    if (params?.sessionId) query.set('sessionId', params.sessionId);
     if (params?.status) query.set('status', params.status);
     return apiFetch<Record<string, unknown>[]>(`/api/bills?${query.toString()}`, { token });
   },
-  open: (token: string, tableId: string) =>
-    apiFetch('/api/bills/open', { method: 'POST', token, body: JSON.stringify({ tableId }) }),
-  close: (token: string, id: string) =>
-    apiFetch(`/api/bills/${encodeURIComponent(id)}/close`, { method: 'PUT', token }),
 };
 
 export { ApiError };

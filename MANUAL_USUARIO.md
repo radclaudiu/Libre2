@@ -1,38 +1,12 @@
 # Manual de Usuario - QR Restaurant System
 
-## Tabla de contenidos
-
-1. [Registro y primer acceso](#1-registro-y-primer-acceso)
-2. [Panel de administración web](#2-panel-de-administración-web)
-3. [Gestión del menú](#3-gestión-del-menú)
-4. [Gestión de mesas y QR](#4-gestión-de-mesas-y-qr)
-5. [Gestión de pedidos](#5-gestión-de-pedidos)
-6. [Historial y facturación](#6-historial-y-facturación)
-7. [Experiencia del cliente](#7-experiencia-del-cliente)
-8. [App TPV (Windows)](#8-app-tpv-windows)
-9. [Flujo completo de trabajo](#9-flujo-completo-de-trabajo)
-
 ---
 
 ## 1. Registro y primer acceso
 
-### Crear cuenta del restaurante
-
 1. Abrir la web y pulsar **"Acceder al Panel"**
-2. En la pantalla de login, pulsar **"Crear cuenta"**
-3. Rellenar:
-   - **Nombre**: Tu nombre
-   - **Nombre del restaurante**: El nombre de tu negocio
-   - **Email**: Tu email (será tu usuario)
-   - **Contraseña**: Mínimo 8 caracteres, con mayúscula, minúscula y número
-4. Pulsar **"Crear cuenta"**
-
-Se creará tu restaurante y accederás directamente al panel de administración.
-
-### Iniciar sesión
-
-1. Introducir email y contraseña
-2. Pulsar **"Entrar"**
+2. Pulsar **"Crear cuenta"** e introducir: nombre, nombre del restaurante, email y contraseña
+3. La contraseña requiere mínimo 8 caracteres con mayúscula, minúscula y número
 
 ---
 
@@ -40,16 +14,10 @@ Se creará tu restaurante y accederás directamente al panel de administración.
 
 ### Dashboard
 
-El dashboard muestra un resumen del día:
+Muestra un resumen del día: pedidos hoy, pedidos pendientes, sesiones activas, facturación.
 
-- **Pedidos hoy**: Número total de pedidos recibidos
-- **Pedidos pendientes**: Pedidos que aún no han sido aceptados
-- **Mesas ocupadas**: Cuántas mesas están en uso (ej: 3/6)
-- **Facturación hoy**: Total facturado de cuentas cerradas
+### Navegación lateral
 
-### Navegación
-
-El menú lateral tiene 5 secciones:
 - **Dashboard**: Resumen general
 - **Menú**: Gestión de categorías y productos
 - **Mesas**: Plano del restaurante y códigos QR
@@ -62,45 +30,13 @@ El menú lateral tiene 5 secciones:
 
 ### Categorías
 
-Las categorías organizan tu menú (ej: Entrantes, Principales, Postres, Bebidas).
-
-**Crear categoría:**
-1. Ir a **Menú**
-2. Pulsar **"Añadir"** junto a "Categorías"
-3. Introducir nombre y orden (número que determina la posición)
-4. Pulsar **"Guardar"**
-
-**Editar categoría:** Pulsar el icono de lápiz junto al nombre.
-
-**Eliminar categoría:** Pulsar el icono de papelera. Se eliminarán también todos los productos de esa categoría.
+Crear, editar o eliminar categorías (ej: Entrantes, Principales, Postres, Bebidas). Cada categoría tiene un número de orden que determina su posición en el menú.
 
 ### Productos
 
-**Crear producto:**
-1. Seleccionar la categoría deseada
-2. Pulsar **"Añadir producto"**
-3. Rellenar:
-   - **Nombre**: Nombre del plato/bebida
-   - **Descripción**: Descripción breve (visible para el cliente)
-   - **Precio**: Precio en euros
-   - **Categoría**: A qué categoría pertenece
-   - **Activo**: Si está disponible para pedir
-4. Pulsar **"Guardar"**
-
-**Añadir extras/modificadores:**
-
-Los extras son opciones adicionales que el cliente puede seleccionar (ej: "Extra queso +1.50€").
-
-1. Al crear o editar un producto, pulsar **"+ Añadir extra"**
-2. Introducir nombre del extra y precio adicional
-3. Se pueden añadir múltiples extras
-
-**Subir imagen del producto:**
-1. En la lista de productos, pulsar el icono de imagen junto al producto
-2. Seleccionar una imagen (JPEG, PNG o WebP, máximo 5MB)
-3. La imagen se muestra en el menú del cliente
-
-**Desactivar producto:** Editar el producto y desmarcar "Activo". El producto no aparecerá en el menú público pero se conserva en el sistema.
+- **Nombre, descripción, precio, categoría, imagen**
+- **Extras/modificadores**: opciones adicionales con precio (ej: "Extra queso +1.50€")
+- **Activo/Inactivo**: los productos inactivos no aparecen en el menú público
 
 ---
 
@@ -108,176 +44,135 @@ Los extras son opciones adicionales que el cliente puede seleccionar (ej: "Extra
 
 ### Plano del restaurante
 
-La sección **Mesas** muestra un plano visual del restaurante donde las mesas aparecen como rectángulos:
+Las mesas aparecen como rectángulos con colores:
+- **Verde**: Libre
+- **Rojo**: Ocupada (sesión activa)
 
-- **Verde**: Mesa libre
-- **Rojo**: Mesa ocupada
+Arrastrar para reorganizar el plano.
 
-**Reorganizar mesas:** Arrastrar y soltar las mesas en el plano. La nueva posición se guarda automáticamente.
+### Código QR
 
-### Crear mesa
+1. Pulsar el icono QR de una mesa
+2. Descargar el PNG
+3. Imprimir y colocar en la mesa física
 
-1. Pulsar **"Nueva mesa"**
-2. Introducir nombre (ej: "Mesa 7", "Terraza 1")
-3. Pulsar **"Crear mesa"**
-4. La mesa aparece en el plano y se puede mover a la posición deseada
-
-### Generar código QR
-
-Cada mesa necesita un código QR que los clientes escanearán:
-
-1. En el plano de mesas, pulsar el icono QR de la mesa deseada
-2. Aparece el código QR generado
-3. Pulsar **"Descargar PNG"** para obtener la imagen
-4. Imprimir el QR y colocarlo en la mesa física
-
-El QR contiene la URL: `https://tudominio.com/m/tu-restaurante/ID_MESA`
-
-### Eliminar mesa
-
-Pulsar el icono de papelera en la mesa del plano.
+**El QR es fijo y nunca cambia.** El control de acceso se hace mediante sesiones, no cambiando el QR.
 
 ---
 
-## 5. Gestión de pedidos
+## 5. Sistema de sesiones (CONCEPTO CLAVE)
 
-### Vista de pedidos
+### ¿Qué es una sesión?
 
-La sección **Pedidos** muestra todos los pedidos en tiempo real.
+Una sesión controla cuándo los clientes pueden pedir. **Sin sesión activa, el cliente NO puede hacer pedidos** aunque tenga el QR escaneado.
 
-Cada pedido muestra:
-- **Mesa**: De qué mesa viene
-- **Estado**: Pendiente, Aceptado, Servido o Cancelado
-- **Productos**: Lista detallada con cantidades, extras y precios
-- **Notas**: Comentarios del cliente (ej: "Sin cebolla")
-- **Hora**: Cuándo se realizó el pedido
-- **Total**: Precio total del pedido
+### Flujo
 
-### Filtrar pedidos
+1. **Camarero abre mesa** desde el TPV → Se crea sesión activa
+2. **Cliente escanea QR** → El sistema verifica que hay sesión activa → Permite ver menú y pedir
+3. **Cliente pide** → El pedido se vincula a la sesión
+4. **Camarero cierra mesa** desde el TPV → La sesión se cierra, se calcula el total, y el cliente ya no puede pedir
 
-Usar el selector de la esquina superior derecha para filtrar por estado:
-- **Todos**: Muestra todos los pedidos
-- **Pendientes**: Solo los que esperan respuesta
-- **Aceptados**: Los que están en preparación
-- **Servidos**: Los ya entregados
-- **Cancelados**: Los cancelados
+### ¿Por qué sesiones?
 
-### Gestionar estados
-
-**Cuando llega un pedido nuevo (estado: Pendiente):**
-- Pulsar **"Aceptar"** → El pedido pasa a "Aceptado" (en preparación)
-- Pulsar **"Cancelar"** → El pedido se cancela
-
-**Cuando el pedido está listo (estado: Aceptado):**
-- Pulsar **"Marcar servido"** → El pedido pasa a "Servido"
-
-### Notificaciones en tiempo real
-
-Los pedidos nuevos aparecen automáticamente sin necesidad de recargar la página.
+- **Seguridad**: Un cliente anterior no puede pedir en la mesa del siguiente
+- **Control**: Solo el camarero decide cuándo se puede pedir
+- **Facturación**: Cada sesión agrupa todos los pedidos para calcular la cuenta
 
 ---
 
-## 6. Historial y facturación
+## 6. Gestión de pedidos (Panel admin web)
 
-### Cuentas cerradas
+Los pedidos llegan en tiempo real. Cada uno muestra:
+- Mesa, estado, productos con extras, notas del cliente, hora, total
 
-La sección **Historial** muestra todas las cuentas cerradas.
+**Estados:** Pendiente → Aceptado → Servido (o Cancelado)
 
-Cada cuenta muestra:
-- **Mesa**: De qué mesa era
-- **Fecha de cierre**: Cuándo se cerró
-- **Total**: Importe total
-
-### Ver detalle
-
-Pulsar en una cuenta para expandir y ver:
-- Todos los pedidos incluidos
-- Detalle de cada producto con extras
-- Notas del cliente
-- Si algún pedido fue cancelado
+Filtrar por estado usando el selector superior.
 
 ---
 
-## 7. Experiencia del cliente
+## 7. Experiencia del cliente (móvil)
 
-### Flujo del cliente (sin necesidad de app ni registro)
+### Cuando el QR no tiene sesión activa
 
-1. **Escanear QR**: El cliente escanea el código QR de su mesa con la cámara del móvil
-2. **Ver menú**: Se abre el menú del restaurante en el navegador del móvil
-3. **Navegar categorías**: Seleccionar entre las categorías (pestañas superiores)
-4. **Añadir productos**: Pulsar el botón "+" en cada producto
-5. **Seleccionar extras**: Si el producto tiene extras, aparece un popup para seleccionarlos
-6. **Ver carrito**: Pulsar el botón flotante inferior que muestra la cantidad y el total
-7. **Revisar pedido**: En el carrito se pueden:
-   - Cambiar cantidades con los botones +/-
-   - Eliminar productos
-   - Añadir notas para la cocina
-8. **Enviar pedido**: Pulsar **"Pedir"**
-9. **Confirmación**: Aparece el mensaje "Tu pedido ha sido enviado"
-10. **Seguir pidiendo**: El cliente puede añadir más productos y hacer nuevos pedidos
+El cliente ve: **"Mesa no disponible. Solicita al camarero que abra tu mesa."** con un botón para reintentar.
 
-### Lo que ve el cliente
+### Cuando hay sesión activa
 
-- Nombre del restaurante
-- Menú organizado por categorías
-- Cada producto con: nombre, descripción, precio e imagen (si tiene)
-- Indicador de extras disponibles
-- Carrito con resumen y total
-- Campo de notas para la cocina
+1. El menú se carga con categorías y productos
+2. Añadir productos con botón "+"
+3. Seleccionar extras si los tiene
+4. Ver carrito (botón flotante inferior)
+5. Añadir notas para la cocina
+6. Pulsar **"Pedir"**
+7. Confirmación: "Tu pedido ha sido enviado"
+8. Puede seguir pidiendo mientras la sesión esté activa
+
+### Cuando el camarero cierra la mesa
+
+El cliente ve en tiempo real: **"Tu sesión ha finalizado. Gracias por tu visita."** y ya no puede pedir más.
 
 ---
 
-## 8. App TPV (Windows)
+## 8. App TPV (Windows) - El corazón del sistema
 
-### Primer acceso
+### Conexión
 
-1. Abrir la aplicación TPV
-2. Introducir:
-   - **Servidor**: URL del servidor API (ej: `http://localhost:3001` o `https://api.tudominio.com`)
-   - **Email**: El email de tu cuenta
-   - **Contraseña**: Tu contraseña
-3. Pulsar **"Entrar"**
+1. Abrir la app TPV
+2. Introducir la **URL del servidor** (ej: `http://localhost:3001` o `https://api.tudominio.com`)
+3. Email y contraseña del restaurante
+4. Pulsar **"Entrar"**
+
+La URL del servidor vincula el TPV con la web. **Ambos deben apuntar al mismo servidor.**
 
 ### Vista principal: Plano de mesas
 
-La pantalla principal muestra el plano del restaurante:
+Las mesas se muestran con **3 colores**:
 
-- **Mesas verdes**: Libres
-- **Mesas rojas**: Ocupadas
-- **Borde azul**: Mesa seleccionada
+| Color | Significado |
+|-------|-------------|
+| **Verde** | Mesa libre, sin sesión |
+| **Amarillo** | Sesión activa, sin pedidos pendientes |
+| **Rojo** | Sesión activa CON pedidos pendientes |
 
-**Mover mesas:** Arrastrar con el ratón para reorganizar.
+Cada mesa con sesión muestra la hora de apertura.
 
-**Seleccionar mesa:** Hacer clic en una mesa para ver sus pedidos.
+### Abrir mesa (iniciar sesión)
 
-### Panel de mesa (lateral derecho)
+1. Click en una mesa **verde** (libre)
+2. En el panel lateral, pulsar **"Abrir mesa"**
+3. La mesa cambia a amarillo → Los clientes ya pueden pedir escaneando el QR
 
-Al seleccionar una mesa se abre el panel con:
+### Recibir pedidos
 
-- **Estado de la mesa** (libre/ocupada)
-- **Lista de pedidos** ordenados cronológicamente
-- **Detalle de cada pedido**: productos, cantidades, extras, notas
-- **Estado de cada pedido** con código de color
-- **Total acumulado** de todos los pedidos de la mesa
+Cuando un cliente pide:
+1. Suena una **notificación sonora**
+2. Aparece un **aviso visual** "Nuevo pedido - Mesa X"
+3. La mesa cambia de amarillo a **rojo**
+4. La **comanda se imprime automáticamente**
 
-**Acciones disponibles:**
-- **Aceptar**: Aceptar un pedido pendiente
-- **Cancelar**: Cancelar un pedido pendiente
-- **Marcar servido**: Marcar un pedido aceptado como servido
-- **Reimprimir**: Reimprimir la comanda de un pedido
-- **Cerrar mesa**: Cierra la cuenta, calcula el total y libera la mesa
+### Gestionar pedidos en el panel lateral
 
-### Recepción de pedidos
+Click en una mesa para ver:
+- Hora de apertura de la sesión y tiempo transcurrido
+- Lista de todos los pedidos de la sesión
+- Detalle: productos, cantidades, extras, notas
+- **Aceptar** / **Cancelar** pedidos pendientes
+- **Marcar servido** pedidos aceptados
+- **Reimprimir** comandas
 
-Cuando un cliente envía un pedido:
+### Cerrar mesa (finalizar sesión)
 
-1. **Sonido**: Suena una notificación (si está activado)
-2. **Popup**: Aparece un aviso "Nuevo pedido - Mesa X"
-3. **Mesa se actualiza**: Cambia de verde a rojo en el plano
-4. **Impresión automática**: La comanda se imprime automáticamente (si está configurado)
+1. Click en la mesa ocupada
+2. Pulsar **"Cerrar mesa"**
+3. Se calcula el **total** de todos los pedidos no cancelados
+4. La sesión se cierra → el cliente ve "Tu sesión ha finalizado"
+5. La mesa vuelve a **verde** (libre)
 
-### Formato de la comanda impresa
+### Impresión de comandas
 
+Formato de la comanda:
 ```
 ================================
 NUEVO PEDIDO - Mesa 5
@@ -292,59 +187,66 @@ Notas: Sin cebolla por favor
 ================================
 ```
 
-### Configuración del TPV
-
-Acceder desde el icono de engranaje en la barra superior:
+### Configuración
 
 | Opción | Descripción |
 |--------|-------------|
-| **Impresora** | Seleccionar la impresora del sistema |
-| **Ancho de papel** | 80mm (estándar) o 58mm (pequeño) |
-| **Impresión automática** | Imprimir al recibir pedido nuevo |
-| **Sonido** | Activar/desactivar sonido de notificación |
-| **Probar impresión** | Envía una prueba a la impresora |
+| Impresora | Seleccionar del sistema |
+| Ancho de papel | 80mm (estándar) o 58mm |
+| Impresión automática | Sí/No |
+| Sonido | Sí/No |
 
-### Historial del TPV
+### Historial
 
-Acceder desde el icono de reloj en la barra superior:
-
-- Ver cuentas cerradas filtradas por fecha
-- Total del día/periodo seleccionado
-- Expandir cada cuenta para ver el detalle
+Ver sesiones/cuentas cerradas filtradas por fecha, con total del día.
 
 ---
 
-## 9. Flujo completo de trabajo
+## 9. Flujo completo de trabajo diario
 
 ### Preparación (una sola vez)
 
-1. Registrar el restaurante en la web
-2. Crear las categorías del menú
-3. Añadir todos los productos con precios, descripciones y extras
-4. Crear las mesas del restaurante
-5. Generar e imprimir los códigos QR de cada mesa
-6. Colocar los QR impresos en las mesas físicas
-7. Instalar la app TPV en el PC del restaurante
-8. Configurar la impresora en el TPV
+1. Registrar restaurante → Crear menú → Crear mesas → Imprimir QR → Instalar TPV
 
 ### Operación diaria
 
-1. **Abrir el TPV** en el PC del restaurante e iniciar sesión
-2. **El cliente escanea** el QR de su mesa
-3. **El cliente pide** desde su móvil
-4. **El TPV recibe** el pedido con notificación sonora
-5. **La comanda se imprime** automáticamente
-6. **Cocina prepara** el pedido
-7. **El camarero marca** el pedido como "Servido" en el TPV
-8. **El cliente puede seguir pidiendo** más productos
-9. **Al terminar**, el camarero pulsa **"Cerrar mesa"** en el TPV
-10. **La mesa vuelve a verde** (libre) y la cuenta queda en el historial
+```
+Camarero abre mesa en TPV
+         ↓
+Mesa cambia a amarillo
+         ↓
+Cliente escanea QR → Ve menú → Pide
+         ↓
+TPV recibe pedido (sonido + comanda impresa)
+Mesa cambia a rojo
+         ↓
+Cocina prepara → Camarero marca "Servido"
+Mesa vuelve a amarillo
+         ↓
+Cliente puede seguir pidiendo
+         ↓
+Al terminar: Camarero cierra mesa en TPV
+         ↓
+Se calcula total → Sesión finalizada
+Cliente ve "Sesión finalizada"
+Mesa vuelve a verde
+```
 
-### Consejos de uso
+---
 
-- Los clientes pueden hacer múltiples pedidos sin reescanear el QR
-- Las notas del cliente aparecen destacadas en cada pedido
-- Si un producto se agota, desactivarlo en el panel de menú para que no aparezca
-- Usar el dashboard para ver el resumen del día
-- Revisar el historial para llevar control de facturación
-- Los pedidos cancelados no se suman al total de la cuenta
+## 10. Preguntas frecuentes
+
+**¿Qué pasa si un cliente anterior tiene el QR abierto en su móvil?**
+No puede pedir. Al cerrar la mesa, la sesión muere y cualquier intento de pedir con el token antiguo es rechazado con error 403.
+
+**¿Se puede abrir/cerrar mesas desde la web admin?**
+No. Las sesiones solo se gestionan desde el TPV (Electron). La web admin puede ver las sesiones pero no crearlas ni cerrarlas.
+
+**¿El QR cambia cada vez?**
+No. El QR es fijo por mesa. El control de acceso lo hace el sistema de sesiones, no el QR.
+
+**¿Pueden varios clientes pedir desde la misma mesa?**
+Sí. Mientras la sesión esté activa, cualquier dispositivo que tenga el sessionToken puede pedir. Todos los que escaneen el QR de la mesa durante la sesión activa comparten el mismo token.
+
+**¿Qué pasa si se cae la conexión del TPV?**
+Los clientes pueden seguir pidiendo (el servidor procesa los pedidos). Al reconectar, el TPV verá todos los pedidos pendientes.

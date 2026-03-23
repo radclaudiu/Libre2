@@ -41,10 +41,27 @@ export const tablesApi = {
     apiFetch(`/api/tables/${id}/position`, { method: 'PUT', token, body: JSON.stringify(data) }),
 };
 
+export const sessionsApi = {
+  open: (token: string, tableId: string) =>
+    apiFetch<{ session: Record<string, unknown>; bill: Record<string, unknown> }>('/api/sessions/open', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ tableId }),
+    }),
+  close: (token: string, sessionId: string) =>
+    apiFetch<{ session: Record<string, unknown>; bill: Record<string, unknown>; total: number }>(
+      `/api/sessions/close/${sessionId}`,
+      { method: 'PUT', token }
+    ),
+  getActive: (token: string) =>
+    apiFetch<Record<string, unknown>[]>('/api/sessions/active', { token }),
+};
+
 export const ordersApi = {
-  getAll: (token: string, params?: { tableId?: string; status?: string }) => {
+  getAll: (token: string, params?: { tableId?: string; sessionId?: string; status?: string }) => {
     const query = new URLSearchParams();
     if (params?.tableId) query.set('tableId', params.tableId);
+    if (params?.sessionId) query.set('sessionId', params.sessionId);
     if (params?.status) query.set('status', params.status);
     return apiFetch<Record<string, unknown>[]>(`/api/orders?${query}`, { token });
   },
@@ -53,12 +70,11 @@ export const ordersApi = {
 };
 
 export const billsApi = {
-  getAll: (token: string, params?: { tableId?: string; status?: string }) => {
+  getAll: (token: string, params?: { tableId?: string; sessionId?: string; status?: string }) => {
     const query = new URLSearchParams();
     if (params?.tableId) query.set('tableId', params.tableId);
+    if (params?.sessionId) query.set('sessionId', params.sessionId);
     if (params?.status) query.set('status', params.status);
     return apiFetch<Record<string, unknown>[]>(`/api/bills?${query}`, { token });
   },
-  close: (token: string, id: string) =>
-    apiFetch(`/api/bills/${id}/close`, { method: 'PUT', token }),
 };

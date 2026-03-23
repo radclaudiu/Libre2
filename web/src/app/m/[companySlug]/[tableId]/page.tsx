@@ -1,22 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { menuApi, ordersApi } from '@/lib/api';
-import { MenuData, Product, ProductExtra } from '@/types';
+import { menuApi, ordersApi, sessionsApi, ApiError } from '@/lib/api';
+import { MenuData, Product, ProductExtra, SessionCheckResult } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from '@/hooks/useCart';
 import toast from 'react-hot-toast';
-import { ShoppingCart, Plus, Minus, X, Send } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
+import { ShoppingCart, Plus, Minus, X, Send, RefreshCw, AlertTriangle } from 'lucide-react';
+
+type PageState = 'loading' | 'no_session' | 'active' | 'session_closed' | 'error';
 
 export default function MenuPage() {
   const params = useParams();
   const companySlug = params.companySlug as string;
   const tableId = params.tableId as string;
 
+  const [pageState, setPageState] = useState<PageState>('loading');
   const [menuData, setMenuData] = useState<MenuData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [tableName, setTableName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [showCart, setShowCart] = useState(false);
   const [showExtras, setShowExtras] = useState<Product | null>(null);
@@ -24,25 +29,72 @@ export default function MenuPage() {
   const [notes, setNotes] = useState('');
   const [ordering, setOrdering] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const cart = useCart();
 
-  useEffect(() => {
-    async function loadMenu() {
-      try {
-        const data = await menuApi.getMenu(companySlug) as unknown as MenuData;
-        setMenuData(data);
-        if (data.categories.length > 0) {
-          setActiveCategory(data.categories[0].id);
+  // Check session status
+  const checkSession = useCallback(async () => {
+    setChecking(true);
+    try {
+      const result = await sessionsApi.check(tableId) as SessionCheckResult;
+      setTableName(result.table.name);
+      setCompanyName(result.company.name);
+
+      if (result.active && result.sessionToken) {
+        setSessionToken(result.sessionToken);
+        localStorage.setItem(`session_${tableId}`, result.sessionToken);
+        setPageState('active');
+
+        // Load menu
+        const menu = await menuApi.getMenu(result.company.slug) as unknown as MenuData;
+        setMenuData(menu);
+        if (menu.categories.length > 0) {
+          setActiveCategory(menu.categories[0].id);
         }
-      } catch {
-        setError('No se pudo cargar el menú');
-      } finally {
-        setLoading(false);
+      } else {
+        setSessionToken(null);
+        localStorage.removeItem(`session_${tableId}`);
+        setPageState('no_session');
       }
+    } catch {
+      setPageState('error');
+    } finally {
+      setChecking(false);
     }
-    loadMenu();
-  }, [companySlug]);
+  }, [tableId]);
+
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
+
+  // Listen for session_closed via Socket.io (public - no auth needed for listening)
+  useEffect(() => {
+    if (pageState !== 'active' || !sessionToken) return;
+
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001';
+    // Connect without auth for public client - listen on a public namespace
+    const socket: Socket = io(wsUrl, {
+      transports: ['websocket', 'polling'],
+      // No auth - public client
+    });
+
+    socket.on('connect', () => {
+      // Join table-specific room for session events
+      socket.emit('join_table', tableId);
+    });
+
+    socket.on('session_closed', (data: { tableId: string; sessionToken: string }) => {
+      if (data.tableId === tableId) {
+        setPageState('session_closed');
+        setSessionToken(null);
+        localStorage.removeItem(`session_${tableId}`);
+        cart.clearCart();
+      }
+    });
+
+    return () => { socket.disconnect(); };
+  }, [pageState, sessionToken, tableId]);
 
   const handleAddProduct = (product: Product) => {
     if (product.extras && product.extras.length > 0) {
@@ -83,12 +135,12 @@ export default function MenuPage() {
   };
 
   const handleOrder = async () => {
-    if (cart.items.length === 0) return;
+    if (cart.items.length === 0 || !sessionToken) return;
     setOrdering(true);
     try {
       await ordersApi.create({
         tableId,
-        companyId: menuData!.company.id,
+        sessionToken,
         items: cart.items.map(item => ({
           productId: item.productId,
           name: item.name,
@@ -103,14 +155,21 @@ export default function MenuPage() {
       setShowCart(false);
       setOrderSent(true);
       setTimeout(() => setOrderSent(false), 5000);
-    } catch {
-      toast.error('Error al enviar el pedido');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setPageState('session_closed');
+        setSessionToken(null);
+        localStorage.removeItem(`session_${tableId}`);
+      } else {
+        toast.error('Error al enviar el pedido');
+      }
     } finally {
       setOrdering(false);
     }
   };
 
-  if (loading) {
+  // LOADING state
+  if (pageState === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500" />
@@ -118,24 +177,84 @@ export default function MenuPage() {
     );
   }
 
-  if (error || !menuData) {
+  // NO SESSION state
+  if (pageState === 'no_session') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Error</h1>
-          <p className="text-gray-600">{error || 'Menú no disponible'}</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="text-center max-w-sm">
+          <div className="bg-yellow-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle size={40} className="text-yellow-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {companyName || 'Restaurante'}
+          </h1>
+          <p className="text-lg text-gray-700 mb-1">{tableName || 'Mesa'}</p>
+          <p className="text-gray-500 mb-6">
+            Mesa no disponible. Solicita al camarero que abra tu mesa.
+          </p>
+          <button
+            onClick={checkSession}
+            disabled={checking}
+            className="bg-primary-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-600 disabled:opacity-50 flex items-center gap-2 mx-auto transition"
+          >
+            <RefreshCw size={18} className={checking ? 'animate-spin' : ''} />
+            {checking ? 'Comprobando...' : 'Reintentar'}
+          </button>
         </div>
       </div>
     );
   }
 
+  // SESSION CLOSED state
+  if (pageState === 'session_closed') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="text-center max-w-sm">
+          <div className="bg-green-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+            <span className="text-4xl">👋</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Tu sesión ha finalizado
+          </h1>
+          <p className="text-gray-500 mb-6">
+            Gracias por tu visita. Si necesitas algo más, solicita al camarero que abra tu mesa nuevamente.
+          </p>
+          <button
+            onClick={checkSession}
+            disabled={checking}
+            className="bg-primary-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-600 disabled:opacity-50 flex items-center gap-2 mx-auto transition"
+          >
+            <RefreshCw size={18} className={checking ? 'animate-spin' : ''} />
+            Nueva sesión
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ERROR state
+  if (pageState === 'error' || !menuData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Error</h1>
+          <p className="text-gray-600 mb-4">No se pudo cargar el menú</p>
+          <button onClick={checkSession} className="bg-primary-500 text-white px-6 py-3 rounded-xl font-semibold">
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ACTIVE SESSION - show menu
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-30">
         <div className="px-4 py-3">
           <h1 className="text-xl font-bold text-gray-900">{menuData.company.name}</h1>
-          <p className="text-sm text-gray-500">Tu mesa está lista para pedir</p>
+          <p className="text-sm text-gray-500">{tableName} - Tu mesa está lista para pedir</p>
         </div>
 
         {/* Category tabs */}
@@ -225,7 +344,7 @@ export default function MenuPage() {
       {showCart && (
         <div className="fixed inset-0 z-50 flex flex-col">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowCart(false)} />
-          <div className="relative mt-auto bg-white rounded-t-2xl max-h-[85vh] flex flex-col animate-slide-up">
+          <div className="relative mt-auto bg-white rounded-t-2xl max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-bold">Tu pedido</h2>
               <button onClick={() => setShowCart(false)} className="p-1">
@@ -271,7 +390,6 @@ export default function MenuPage() {
                 <p className="text-center text-gray-500 py-8">El carrito está vacío</p>
               )}
 
-              {/* Notes */}
               <div className="pt-2">
                 <label className="text-sm font-medium text-gray-700">Notas para la cocina</label>
                 <textarea
@@ -284,7 +402,6 @@ export default function MenuPage() {
               </div>
             </div>
 
-            {/* Total and order button */}
             <div className="border-t p-4 space-y-3">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>

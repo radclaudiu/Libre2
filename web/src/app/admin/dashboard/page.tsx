@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { ordersApi, tablesApi, billsApi } from '@/lib/api';
+import { ordersApi, tablesApi, billsApi, sessionsApi } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 import { ClipboardList, Grid3X3, Euro, TrendingUp } from 'lucide-react';
 
@@ -12,6 +12,7 @@ export default function DashboardPage() {
     todayOrders: 0,
     occupiedTables: 0,
     totalTables: 0,
+    activeSessions: 0,
     todayRevenue: 0,
     pendingOrders: 0,
   });
@@ -20,10 +21,11 @@ export default function DashboardPage() {
     if (!token) return;
     async function load() {
       try {
-        const [orders, tables, bills] = await Promise.all([
+        const [orders, tables, bills, activeSessions] = await Promise.all([
           ordersApi.getAll(token!) as Promise<Array<{ createdAt: string; status: string }>>,
           tablesApi.getAll(token!) as Promise<Array<{ status: string }>>,
           billsApi.getAll(token!, { status: 'CLOSED' }) as Promise<Array<{ closedAt: string; total: number }>>,
+          sessionsApi.getActive(token!) as Promise<Array<Record<string, unknown>>>,
         ]);
 
         const today = new Date().toISOString().split('T')[0];
@@ -41,6 +43,7 @@ export default function DashboardPage() {
           todayOrders: todayOrders.length,
           occupiedTables,
           totalTables: tables.length,
+          activeSessions: activeSessions.length,
           todayRevenue,
           pendingOrders,
         });
@@ -65,8 +68,8 @@ export default function DashboardPage() {
       color: 'bg-yellow-50 text-yellow-600',
     },
     {
-      label: 'Mesas ocupadas',
-      value: `${stats.occupiedTables}/${stats.totalTables}`,
+      label: 'Sesiones activas',
+      value: `${stats.activeSessions}/${stats.totalTables}`,
       icon: Grid3X3,
       color: 'bg-green-50 text-green-600',
     },

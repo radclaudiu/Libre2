@@ -1,12 +1,14 @@
-import { Table, Order } from '../types';
-import { X, Printer, DoorClosed, Clock, CheckCircle, Truck, XCircle } from 'lucide-react';
+import { Table, TableSession, Order } from '../types';
+import { X, Printer, DoorClosed, DoorOpen, Clock, CheckCircle, Truck, XCircle } from 'lucide-react';
 
 interface Props {
   table: Table;
+  session: TableSession | null;
   orders: Order[];
   onClose: () => void;
   onStatusChange: (orderId: string, status: string) => void;
-  onCloseTable: () => void;
+  onOpenSession: () => void;
+  onCloseSession: () => void;
   onReprint: (order: Order) => void;
 }
 
@@ -18,6 +20,14 @@ function formatTime(date: string): string {
   return new Date(date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatDuration(openedAt: string): string {
+  const diff = Date.now() - new Date(openedAt).getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(mins / 60);
+  if (hours > 0) return `${hours}h ${mins % 60}m`;
+  return `${mins}m`;
+}
+
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   PENDING: { label: 'Pendiente', color: 'text-yellow-600 bg-yellow-50', icon: Clock },
   ACCEPTED: { label: 'Aceptado', color: 'text-blue-600 bg-blue-50', icon: CheckCircle },
@@ -25,7 +35,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
   CANCELLED: { label: 'Cancelado', color: 'text-red-600 bg-red-50', icon: XCircle },
 };
 
-export default function TablePanel({ table, orders, onClose, onStatusChange, onCloseTable, onReprint }: Props) {
+export default function TablePanel({ table, session, orders, onClose, onStatusChange, onOpenSession, onCloseSession, onReprint }: Props) {
   const activeOrders = orders.filter(o => o.status !== 'CANCELLED');
 
   const totalAccumulated = activeOrders.reduce((total, order) => {
@@ -38,116 +48,143 @@ export default function TablePanel({ table, orders, onClose, onStatusChange, onC
   return (
     <div className="w-96 bg-white shadow-lg border-l flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold">{table.name}</h2>
-          <span className={`text-sm ${table.status === 'OCCUPIED' ? 'text-red-500' : 'text-green-500'}`}>
-            {table.status === 'OCCUPIED' ? 'Ocupada' : 'Libre'}
-          </span>
-        </div>
-        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-          <X size={20} />
-        </button>
-      </div>
-
-      {/* Orders */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {orders.length === 0 && (
-          <p className="text-center text-gray-400 py-8">No hay pedidos para esta mesa</p>
-        )}
-
-        {orders.map((order, idx) => {
-          const status = statusConfig[order.status];
-          const StatusIcon = status.icon;
-
-          return (
-            <div key={order.id} className="border rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">Pedido #{orders.length - idx}</span>
-                  <span className="text-xs text-gray-400">{formatTime(order.createdAt)}</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${status.color}`}>
-                  <StatusIcon size={12} />
-                  {status.label}
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold">{table.name}</h2>
+            {session ? (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Sesión activa</span>
+                <span className="text-xs text-gray-400">
+                  desde {formatTime(session.openedAt)} ({formatDuration(session.openedAt)})
                 </span>
               </div>
+            ) : (
+              <span className="text-sm text-gray-400">Sin sesión activa</span>
+            )}
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+            <X size={20} />
+          </button>
+        </div>
+      </div>
 
-              <div className="space-y-1 text-sm">
-                {order.items.map((item, iIdx) => (
-                  <div key={iIdx}>
-                    <div className="flex justify-between">
-                      <span>{item.quantity}x {item.name}</span>
-                      <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
+      {/* No session - show open button */}
+      {!session && (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <DoorOpen size={48} className="mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500 mb-4">La mesa no tiene sesión activa. Ábrela para que los clientes puedan pedir.</p>
+            <button
+              onClick={onOpenSession}
+              className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 flex items-center gap-2 mx-auto"
+            >
+              <DoorOpen size={18} /> Abrir mesa
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active session - show orders */}
+      {session && (
+        <>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {orders.length === 0 && (
+              <p className="text-center text-gray-400 py-8">Esperando pedidos de los clientes...</p>
+            )}
+
+            {orders.map((order, idx) => {
+              const status = statusConfig[order.status];
+              const StatusIcon = status.icon;
+
+              return (
+                <div key={order.id} className="border rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">Pedido #{orders.length - idx}</span>
+                      <span className="text-xs text-gray-400">{formatTime(order.createdAt)}</span>
                     </div>
-                    {item.extras.map((extra, eIdx) => (
-                      <div key={eIdx} className="text-xs text-gray-500 pl-4 flex justify-between">
-                        <span>+ {extra.name}</span>
-                        <span>{formatPrice(extra.price * item.quantity)}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${status.color}`}>
+                      <StatusIcon size={12} />
+                      {status.label}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 text-sm">
+                    {order.items.map((item, iIdx) => (
+                      <div key={iIdx}>
+                        <div className="flex justify-between">
+                          <span>{item.quantity}x {item.name}</span>
+                          <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
+                        </div>
+                        {item.extras.map((extra, eIdx) => (
+                          <div key={eIdx} className="text-xs text-gray-500 pl-4 flex justify-between">
+                            <span>+ {extra.name}</span>
+                            <span>{formatPrice(extra.price * item.quantity)}</span>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
-                ))}
-              </div>
 
-              {order.notes && (
-                <p className="text-xs text-gray-600 bg-yellow-50 p-2 rounded mt-2">
-                  Notas: {order.notes}
-                </p>
-              )}
+                  {order.notes && (
+                    <p className="text-xs text-gray-600 bg-yellow-50 p-2 rounded mt-2">
+                      Notas: {order.notes}
+                    </p>
+                  )}
 
-              <div className="flex gap-2 mt-2">
-                {order.status === 'PENDING' && (
-                  <>
+                  <div className="flex gap-2 mt-2">
+                    {order.status === 'PENDING' && (
+                      <>
+                        <button
+                          onClick={() => onStatusChange(order.id, 'ACCEPTED')}
+                          className="flex-1 text-xs bg-blue-500 text-white py-1.5 rounded hover:bg-blue-600"
+                        >
+                          Aceptar
+                        </button>
+                        <button
+                          onClick={() => onStatusChange(order.id, 'CANCELLED')}
+                          className="text-xs bg-red-100 text-red-600 py-1.5 px-3 rounded hover:bg-red-200"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    )}
+                    {order.status === 'ACCEPTED' && (
+                      <button
+                        onClick={() => onStatusChange(order.id, 'SERVED')}
+                        className="flex-1 text-xs bg-green-500 text-white py-1.5 rounded hover:bg-green-600"
+                      >
+                        Marcar servido
+                      </button>
+                    )}
                     <button
-                      onClick={() => onStatusChange(order.id, 'ACCEPTED')}
-                      className="flex-1 text-xs bg-blue-500 text-white py-1.5 rounded hover:bg-blue-600"
+                      onClick={() => onReprint(order)}
+                      className="text-xs bg-gray-100 text-gray-600 py-1.5 px-3 rounded hover:bg-gray-200 flex items-center gap-1"
                     >
-                      Aceptar
+                      <Printer size={12} /> Reimprimir
                     </button>
-                    <button
-                      onClick={() => onStatusChange(order.id, 'CANCELLED')}
-                      className="text-xs bg-red-100 text-red-600 py-1.5 px-3 rounded hover:bg-red-200"
-                    >
-                      Cancelar
-                    </button>
-                  </>
-                )}
-                {order.status === 'ACCEPTED' && (
-                  <button
-                    onClick={() => onStatusChange(order.id, 'SERVED')}
-                    className="flex-1 text-xs bg-green-500 text-white py-1.5 rounded hover:bg-green-600"
-                  >
-                    Marcar servido
-                  </button>
-                )}
-                <button
-                  onClick={() => onReprint(order)}
-                  className="text-xs bg-gray-100 text-gray-600 py-1.5 px-3 rounded hover:bg-gray-200 flex items-center gap-1"
-                >
-                  <Printer size={12} /> Reimprimir
-                </button>
-              </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t p-4">
+            <div className="flex justify-between items-center mb-3">
+              <span className="font-bold text-lg">Total acumulado</span>
+              <span className="font-bold text-lg text-primary-600">{formatPrice(totalAccumulated)}</span>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Footer */}
-      <div className="border-t p-4">
-        <div className="flex justify-between items-center mb-3">
-          <span className="font-bold text-lg">Total acumulado</span>
-          <span className="font-bold text-lg text-primary-600">{formatPrice(totalAccumulated)}</span>
-        </div>
-        {table.status === 'OCCUPIED' && (
-          <button
-            onClick={onCloseTable}
-            className="w-full bg-primary-500 text-white py-2.5 rounded-lg font-semibold hover:bg-primary-600 flex items-center justify-center gap-2"
-          >
-            <DoorClosed size={18} /> Cerrar mesa
-          </button>
-        )}
-      </div>
+            <button
+              onClick={onCloseSession}
+              className="w-full bg-primary-500 text-white py-2.5 rounded-lg font-semibold hover:bg-primary-600 flex items-center justify-center gap-2"
+            >
+              <DoorClosed size={18} /> Cerrar mesa
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

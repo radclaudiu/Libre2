@@ -15,6 +15,7 @@ export interface Order {
   id: string;
   tableId: string;
   companyId: string;
+  sessionId: string;
   items: OrderItem[];
   status: 'PENDING' | 'ACCEPTED' | 'SERVED' | 'CANCELLED';
   notes: string | null;
@@ -33,16 +34,30 @@ export interface Table {
   companyId: string;
 }
 
+export interface TableSession {
+  id: string;
+  tableId: string;
+  companyId: string;
+  sessionToken: string;
+  status: 'ACTIVE' | 'CLOSED';
+  openedAt: string;
+  closedAt: string | null;
+  table?: { id: string; name: string };
+  orders?: Array<{ id: string; status: string; createdAt: string }>;
+}
+
 export interface Bill {
   id: string;
   tableId: string;
   companyId: string;
+  sessionId: string;
   orders: Order[];
   total: number;
   status: 'OPEN' | 'CLOSED';
   openedAt: string;
   closedAt: string | null;
   table?: { id: string; name: string };
+  session?: { id: string; openedAt: string; closedAt: string | null; status: string };
 }
 
 export interface TPVSettings {

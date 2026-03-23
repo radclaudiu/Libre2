@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../../utils/prisma';
 import { authMiddleware } from '../../middleware/auth';
-import { NotFoundError, ValidationError } from '../../utils/errors';
+import { NotFoundError, ValidationError, ForbiddenError } from '../../utils/errors';
 import { getIO } from '../websocket/socket';
 
 const orderItemSchema = z.object({
@@ -18,7 +18,7 @@ const orderItemSchema = z.object({
 
 const createOrderSchema = z.object({
   tableId: z.string().uuid('Invalid table ID'),
-  companyId: z.string().uuid('Invalid company ID'),
+  sessionToken: z.string().uuid('Invalid session token'),
   items: z.array(orderItemSchema).min(1, 'At least one item is required').max(50, 'Too many items in one order'),
   notes: z.string().max(500).optional(),
 });
@@ -28,7 +28,7 @@ const statusSchema = z.object({
 });
 
 export async function ordersRoutes(fastify: FastifyInstance) {
-  // PUBLIC endpoint - no auth required, with stricter rate limiting
+  // PUBLIC endpoint - requires valid sessionToken
   fastify.post('/api/orders', {
     config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
   }, async (request, reply) => {
@@ -37,13 +37,26 @@ export async function ordersRoutes(fastify: FastifyInstance) {
       throw new ValidationError(parsed.error.errors[0].message);
     }
 
-    const { tableId, companyId, items, notes } = parsed.data;
+    const { tableId, sessionToken, items, notes } = parsed.data;
 
-    // Verify table belongs to company
-    const table = await prisma.table.findFirst({
-      where: { id: tableId, companyId },
+    // Validate session is ACTIVE for this table
+    const session = await prisma.tableSession.findFirst({
+      where: {
+        sessionToken,
+        tableId,
+        status: 'ACTIVE',
+      },
+      include: {
+        table: { select: { name: true } },
+        bill: true,
+      },
     });
-    if (!table) throw new NotFoundError('Table');
+
+    if (!session) {
+      throw new ForbiddenError('No active session for this table. Ask the waiter to open your table.');
+    }
+
+    const companyId = session.companyId;
 
     // Verify all products exist and belong to company, and validate prices
     const productIds = items.map(i => i.productId);
@@ -79,38 +92,18 @@ export async function ordersRoutes(fastify: FastifyInstance) {
       };
     });
 
-    // Create order with server-validated prices
+    // Create order linked to session
     const order = await prisma.order.create({
       data: {
         tableId,
         companyId,
+        sessionId: session.id,
+        billId: session.bill?.id,
         items: validatedItems,
         notes,
         status: 'PENDING',
       },
-      include: { table: { select: { name: true } } },
-    });
-
-    // Update table status to OCCUPIED
-    await prisma.table.update({
-      where: { id: tableId },
-      data: { status: 'OCCUPIED' },
-    });
-
-    // Ensure bill is open for this table
-    let bill = await prisma.bill.findFirst({
-      where: { tableId, companyId, status: 'OPEN' },
-    });
-    if (!bill) {
-      bill = await prisma.bill.create({
-        data: { tableId, companyId, status: 'OPEN' },
-      });
-    }
-
-    // Link order to bill
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { billId: bill.id },
+      include: { table: { select: { id: true, name: true } } },
     });
 
     // Emit to TPV via WebSocket
@@ -119,10 +112,6 @@ export async function ordersRoutes(fastify: FastifyInstance) {
       io.to(`company_${companyId}`).emit('new_order', {
         ...order,
         items: validatedItems,
-      });
-      io.to(`company_${companyId}`).emit('table_status_changed', {
-        tableId,
-        status: 'OCCUPIED',
       });
     } catch {
       // Socket not initialized yet, skip
@@ -136,10 +125,15 @@ export async function ordersRoutes(fastify: FastifyInstance) {
 
   fastify.get('/api/orders', { preHandler: authMiddleware }, async (request) => {
     const companyId = request.user!.companyId;
-    const { tableId, status } = request.query as { tableId?: string; status?: string };
+    const { tableId, sessionId, status } = request.query as {
+      tableId?: string;
+      sessionId?: string;
+      status?: string;
+    };
 
     const where: Record<string, unknown> = { companyId };
     if (tableId) where.tableId = tableId;
+    if (sessionId) where.sessionId = sessionId;
     if (status && validStatuses.includes(status)) where.status = status;
 
     return prisma.order.findMany({

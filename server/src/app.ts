@@ -21,6 +21,7 @@ import { qrRoutes } from './modules/qr/qr.routes';
 import { ordersRoutes } from './modules/orders/orders.routes';
 import { billsRoutes } from './modules/bills/bills.routes';
 import { menuRoutes } from './modules/menu/menu.routes';
+import { sessionsRoutes } from './modules/sessions/sessions.routes';
 
 async function buildApp() {
   const fastify = Fastify({
@@ -102,6 +103,7 @@ async function buildApp() {
   await fastify.register(qrRoutes);
   await fastify.register(ordersRoutes);
   await fastify.register(billsRoutes);
+  await fastify.register(sessionsRoutes);
   await fastify.register(menuRoutes);
 
   return fastify;
